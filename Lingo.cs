@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -43,7 +43,18 @@ namespace LingoBot
 
             commands = discord.GetService<CommandService>();
 
-            RegisterMemeCommand();
+            RegisterCommands();
+
+            discord.ExecuteAndWait(async () =>
+            {
+                await discord.Connect("Mjk1NjY3NzcwODAzMzU1NjYw.C7rh0g.ESwSupsPBf13U5Fj9h4XDsUFMCk", TokenType.Bot);
+            });
+        }
+        
+		//Register all commands 
+		private void RegisterCommands()
+		{
+			RegisterMemeCommand();
             RegisterAddMemeCommand();
             RegisterRemoveMemeCommand();
             RegisterInitCommand();
@@ -55,13 +66,8 @@ namespace LingoBot
             RegisterHelpCommand();
             RegisterCookieCommand();
             RegisterSuggestionBoxCommand();
-
-            discord.ExecuteAndWait(async () =>
-            {
-                await discord.Connect("Mjk1NjY3NzcwODAzMzU1NjYw.C7rh0g.ESwSupsPBf13U5Fj9h4XDsUFMCk", TokenType.Bot);
-            });
-        }
-        
+		}
+		
         // Commands - Hard
         
         private void RegisterInitCommand()
