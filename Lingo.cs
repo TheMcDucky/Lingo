@@ -15,8 +15,15 @@ namespace LingoBot
         CommandService commands;
 
         Random rand = new Random();
+
+        // ulong = user id
+        // array = [list1 list2 list3]
+        // list1 = fluent
+        // list2 = conversational 
+        // list3 = learning
         Dictionary<ulong, List<string>[]> languageRoles = new Dictionary<ulong, List<string>[]>();
-        LinkedList<string> memes = new LinkedList<string>();
+        List<string> memes = new List<string>();
+        List<string> suggestions = new List<string>();
         bool initFlag = false; 
         string permissionError = "You don't have the permission to use that.";
 
@@ -46,113 +53,17 @@ namespace LingoBot
             RegisterLanguageCommand();
             RegisterRemoveLanguageCommand();
             RegisterHelpCommand();
-                
+            RegisterCookieCommand();
+            RegisterSuggestionBoxCommand();
+
             discord.ExecuteAndWait(async () =>
             {
                 await discord.Connect("Mjk1NjY3NzcwODAzMzU1NjYw.C7rh0g.ESwSupsPBf13U5Fj9h4XDsUFMCk", TokenType.Bot);
             });
         }
         
-        // Commands
-
-        private void RegisterMemeCommand()
-        {
-            commands.CreateCommand("meme")
-                .Do(async (e) =>
-                {
-                    if (initFlag)
-                    {
-                        if (memes.Count == 0)
-                        {
-                            await e.Channel.SendMessage("I dont have any memes to display, please use `!addmeme <meme_link>` to add a meme!");
-                        }
-                        else
-                        {
-                            int indexOfMeme = rand.Next(memes.Count);
-                            string meme = memes.ElementAt(indexOfMeme);
-                            await e.Channel.SendMessage(meme);
-                        }
-                    }
-                    else
-                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
-                });
-        }
-
-        private void RegisterAddMemeCommand()
-        {
-            commands.CreateCommand("addmeme").Parameter("link")
-                .Do(async (e) =>
-                {
-                    if(initFlag)
-                    {
-                        bool flag = false;
-                        for (int i = 0; i < e.User.Roles.Count(); i++)
-                        {
-                            if (e.User.Roles.ElementAt(i).ToString() == "Semi-Moderator")
-                            {
-                                flag = true;
-                            }
-                        }
-                        if (flag)
-                            await AddMeme(e, e.GetArg("link"));
-                        else
-                            PrintPremissionError(e);
-                        UpdateMemesList();
-                    }
-                    else
-                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
-                });
-        }
-         
-        private void RegisterHiraganaCommand()
-        {
-            commands.CreateCommand("hiragana").Do(async (e) =>
-            {
-                await e.Channel.SendMessage("http://prntscr.com/ep0d0w");
-            });
-        }
-
-        private void RegisterKatakanaCommand()
-        {
-            commands.CreateCommand("katakana").Do(async (e) =>
-            {
-                await e.Channel.SendMessage("http://prntscr.com/ep0etn");
-            });
-        }
-
-        private void RegisterRemoveMemeCommand()
-        {
-            commands.CreateCommand("removememe").Parameter("link")
-                .Do(async (e) =>
-                {
-                    if (initFlag)
-                    {
-                        bool flag = false;
-                        for (int i = 0; i < e.User.Roles.Count(); i++)
-                        {
-                            if (e.User.Roles.ElementAt(i).ToString() == "Semi-Moderator")
-                            {
-                                flag = true;
-                            }
-                        }
-                        if (flag)
-                            if (memes.Contains(e.GetArg("link")))
-                            {
-                                string link = e.GetArg("link");
-                                memes.Remove(link);
-                                await e.Channel.SendMessage("Meme successfully removed from the meme list.");
-                            }
-                            else
-                                await e.Channel.SendMessage("This meme is not in the meme list.");
-                        else
-                            PrintPremissionError(e);
-                        UpdateMemesList();
-                    }
-                    else
-                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
-                });
-        }
-
+        // Commands - Hard
+        
         private void RegisterInitCommand()
         {
             commands.CreateCommand("init")
@@ -207,37 +118,151 @@ namespace LingoBot
                 });
         }
 
-        private void RegisterHelpCommand()
-        {
-            commands.CreateCommand("help").Parameter("function", ParameterType.Optional)
-                            .Do(async (e) =>
-                            {
-                            string myMessage = "";
-                                if(e.GetArg("function") != "")
-                                    await e.Channel.SendMessage("Presenting help information for the command `~" +e.GetArg("function") + "`:");
-                                else
-                                {
-                                    await e.Channel.SendMessage("Available commands: meme, languages, addlanguage, removelanguage, hiragana, katakana\nFor more commands contact mods or @Collector");
-                                    return;
-                                }
-                                if (e.GetArg("function") == "languages")
-                                    myMessage = "Usage: Check someone's fluent, conversational and learning languages.\nExample: `~languages @Collector`";
-                                else if (e.GetArg("function") == "addlanguage")
-                                    myMessage = "Usage: Add to your language list a fluent, conversational or learning language.\nExample: `~addlanguages conversational EN`";
-                                else if (e.GetArg("function") == "removelanguage")
-                                    myMessage = "Usage: Remove a fluent, conversational or learning language from your languages list.\nExample: `~removelanguages fluent JA`";
-                                else if (e.GetArg("function") == "hiragana" || e.GetArg("function") == "katakana")
-                                    myMessage = "Usage: Print a " + e.GetArg("function") + " chart.";
-                                else if (e.GetArg("function") == "meme")
-                                    myMessage = "Usage: Shows a dank meme. Pretty straight forward. To add memes contant mods.";
-                                await e.Channel.SendMessage(myMessage);
+        // Memes
 
-                            });
+        private void RegisterMemeCommand()
+        {
+            commands.CreateCommand("meme")
+                .Do(async (e) =>
+                {
+                    if (initFlag)
+                    {
+                        if (memes.Count == 0)
+                        {
+                            await e.Channel.SendMessage("I dont have any memes to display, please use `!addmeme <meme_link>` to add a meme!");
+                        }
+                        else
+                        {
+                            int indexOfMeme = rand.Next(memes.Count);
+                            string meme = memes.ElementAt(indexOfMeme);
+                            await e.Channel.SendMessage(meme);
+                        }
+                    }
+                    else
+                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
+                });
+        }
+
+        private void RegisterAddMemeCommand()
+        {
+            commands.CreateCommand("addmeme").Parameter("link")
+                .Do(async (e) =>
+                {
+                    if(initFlag)
+                    {
+                        bool flag = false;
+                        for (int i = 0; i < e.User.Roles.Count(); i++)
+                        {
+                            if (e.User.Roles.ElementAt(i).ToString() == "Semi-Moderator")
+                            {
+                                flag = true;
+                            }
+                        }
+                        if (flag)
+                            await AddMeme(e, e.GetArg("link"));
+                        else
+                            PrintPremissionError(e);
+                        UpdateMemesList();
+                    }
+                    else
+                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
+                });
+        }
+       
+        private void RegisterRemoveMemeCommand()
+        {
+            commands.CreateCommand("removememe").Parameter("link")
+                .Do(async (e) =>
+                {
+                    if (initFlag)
+                    {
+                        bool flag = false;
+                        for (int i = 0; i < e.User.Roles.Count(); i++)
+                        {
+                            if (e.User.Roles.ElementAt(i).ToString() == "Semi-Moderator")
+                            {
+                                flag = true;
+                            }
+                        }
+                        if (flag)
+                            if (memes.Contains(e.GetArg("link")))
+                            {
+                                string link = e.GetArg("link");
+                                memes.Remove(link);
+                                await e.Channel.SendMessage("Meme successfully removed from the meme list.");
+                            }
+                            else
+                                await e.Channel.SendMessage("This meme is not in the meme list.");
+                        else
+                            PrintPremissionError(e);
+                        UpdateMemesList();
+                    }
+                    else
+                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
+                });
+        }
+
+        // Manage languages
+
+        private void RegisterLanguageCommand()
+        {
+            commands.CreateCommand("languages").Alias("language").Parameter("id", ParameterType.Optional)
+                .Do(async (e) =>
+                {
+                    if (initFlag)
+                    {
+                        ulong ID = e.User.Id;
+                        if (!e.GetArg("id").Equals(""))
+                        {
+                            ID = e.Message.MentionedUsers.ElementAt(0).Id;
+                        }
+                        if (languageRoles.ContainsKey(e.Message.MentionedUsers.ElementAt(0).Id))
+                        {
+                            string fluentOut = "Fluent: ";
+                            for (int i = 0; i < languageRoles[ID].ElementAt(0).Count; i++)
+                            {
+                                fluentOut += languageRoles[ID].ElementAt(0).ElementAt(i) + (i < languageRoles[ID].ElementAt(0).Count - 1 ? ", " : "");
+                            }
+                            if (languageRoles[ID].ElementAt(0).Count == 0)
+                                fluentOut = "@";
+                            string conversationalOut = "Conversational: ";
+                            for (int i = 0; i < languageRoles[ID].ElementAt(1).Count; i++)
+                            {
+                                conversationalOut += languageRoles[ID].ElementAt(1).ElementAt(i) + (i < languageRoles[ID].ElementAt(1).Count - 1 ? ", " : "");
+                            }
+                            if (languageRoles[ID].ElementAt(1).Count == 0)
+                                conversationalOut = "@";
+                            string learningOut = "Learning: ";
+                            for (int i = 0; i < languageRoles[ID].ElementAt(2).Count; i++)
+                            {
+                                learningOut += languageRoles[ID].ElementAt(2).ElementAt(i) + (i < languageRoles[ID].ElementAt(2).Count - 1 ? ", " : "");
+                            }
+                            if (languageRoles[ID].ElementAt(2).Count == 0)
+                                learningOut = "@";
+                            if (fluentOut != "@")
+                                await e.Channel.SendMessage(fluentOut);
+                            else
+                                await e.Channel.SendMessage("This user has no fluent languages");
+                            if (conversationalOut != "@")
+                                await e.Channel.SendMessage(conversationalOut);
+                            else
+                                await e.Channel.SendMessage("This user has no conversational languages");
+                            if (learningOut != "@")
+                                await e.Channel.SendMessage(learningOut);
+                            else
+                                await e.Channel.SendMessage("This user is not learning any languages");
+                        }
+                        else
+                            await e.Channel.SendMessage("The user did not set his languages!");
+                    }
+                    else
+                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
+                });
         }
 
         private void RegisterAddLanguageCommand()
         {
-            commands.CreateCommand("addlanguage").Parameter("type").Parameter("Language")
+            commands.CreateCommand("addlanguage").Alias("addlanguages").Parameter("type").Parameter("Language")
                 .Do(async (e) =>
                 {
                     if (initFlag)
@@ -274,60 +299,9 @@ namespace LingoBot
                 });
         }
 
-        private void RegisterLanguageCommand()
-        {
-            commands.CreateCommand("languages").Parameter("id")
-                .Do(async (e) =>
-                {
-                    if (initFlag)
-                    {
-                        if (languageRoles.ContainsKey(e.Message.MentionedUsers.ElementAt(0).Id))
-                        {
-                            string fluentOut = "Fluent: ";
-                            for (int i = 0; i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(0).Count; i++)
-                            {
-                                fluentOut += languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(0).ElementAt(i) + (i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(0).Count - 1 ? ", " : "");
-                            }
-                            if (languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(0).Count == 0)
-                                fluentOut = "@";
-                            string conversationalOut = "Conversational: ";
-                            for (int i = 0; i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(1).Count; i++)
-                            {
-                                conversationalOut += languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(1).ElementAt(i) + (i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(1).Count - 1 ? ", " : "");
-                            }
-                            if (languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(1).Count == 0)
-                                conversationalOut = "@";
-                            string learningOut = "Learning: ";
-                            for (int i = 0; i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(2).Count; i++)
-                            {
-                                learningOut += languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(2).ElementAt(i) + (i < languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(2).Count - 1 ? ", " : "");
-                            }
-                            if (languageRoles[e.Message.MentionedUsers.ElementAt(0).Id].ElementAt(2).Count == 0)
-                                learningOut = "@";
-                            if (fluentOut != "@")
-                                await e.Channel.SendMessage(fluentOut);
-                            else
-                                await e.Channel.SendMessage("This user has no fluent languages");
-                            if (conversationalOut != "@")
-                                await e.Channel.SendMessage(conversationalOut);
-                            else
-                                await e.Channel.SendMessage("This user has no conversational languages");
-                            if (learningOut != "@")
-                                await e.Channel.SendMessage(learningOut);
-                            else
-                                await e.Channel.SendMessage("This user is not learning any languages");
-                        }
-                        else
-                            await e.Channel.SendMessage("The user did not set his languages!");
-                    }
-                    else
-                        await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
-                });
-        }
-
         private void RegisterRemoveLanguageCommand()
         {
-            commands.CreateCommand("removelanguage").Parameter("type").Parameter("Language")
+            commands.CreateCommand("removelanguage").Alias("removelanguages").Parameter("type").Parameter("Language")
             .Do(async (e) =>
              {
                  if(initFlag)
@@ -368,18 +342,81 @@ namespace LingoBot
              });
         }
 
+        // Etc commands
+
+        private void RegisterSuggestionBoxCommand()
+        {
+            commands.CreateCommand("suggest").Alias("idea").Parameter("suggestion")
+            .Do(async (e) =>
+            {
+                suggestions.Add(e.GetArg("suggestion"));
+                UpdateSuggestions();
+                await e.Channel.SendMessage("Suggestion recieved, Thank you for your input.");
+            });
+        }
+
+        private void RegisterHelpCommand()
+        {
+            commands.CreateCommand("help").Parameter("function", ParameterType.Optional)
+                            .Do(async (e) =>
+                            {
+                                string myMessage = "";
+                                string functionName = e.GetArg("function");
+                                if (functionName != "")
+                                    await e.User.SendMessage("Presenting help information for the command `~" + functionName + "`:");
+                                else
+                                {
+                                    await e.User.SendMessage("Available commands: meme, languages, addlanguage, removelanguage, hiragana, katakana, suggest, cookie\nFor more commands contact mods or @Collector");
+                                    return;
+                                }
+                                if (functionName == "languages")
+                                    myMessage = "Usage: Check someone's fluent, conversational and learning languages.\nExample: `~languages @Collector`";
+                                else if (functionName == "addlanguage")
+                                    myMessage = "Usage: Add to your language list a fluent, conversational or learning language.\nExample: `~addlanguages conversational EN`";
+                                else if (functionName == "removelanguage")
+                                    myMessage = "Usage: Remove a fluent, conversational or learning language from your languages list.\nExample: `~removelanguages fluent JA`";
+                                else if (functionName == "hiragana" || functionName == "katakana")
+                                    myMessage = "Usage: Print a " + functionName + " chart.";
+                                else if (functionName == "meme")
+                                    myMessage = "Usage: Shows a dank meme. Pretty straight forward. To add memes contant mods.";
+                                else if (functionName == "cookie")
+                                    myMessage = "Usage: Give another user a cookie.\nExample: ~cookie @Collector";
+                                else if (functionName == "suggest")
+                                    myMessage = "Usage: Propose a request for the mods! Very useful command to get your ideas through to the mods.\nExample: ~suggest \"I want to be able to give cookies to more than 1 person. \"";
+                                await e.User.SendMessage(myMessage);
+                            });
+        }
+
+        // Commands - Easy
+
         private void RegisterCookieCommand()
         {
             commands.CreateCommand("cookie").Parameter("user")
                 .Do(async (e) =>
                 {
-                    await e.Channel.SendMessage("");
+                    await e.Channel.SendMessage(" " + e.GetArg("user") + " " + e.User.Name + " gave you a cookie. :cookie:");
                 });
 
         }
 
+        private void RegisterHiraganaCommand()
+        {
+            commands.CreateCommand("hiragana").Do(async (e) =>
+            {
+                await e.Channel.SendMessage("http://prntscr.com/ep0d0w");
+            });
+        }
+
+        private void RegisterKatakanaCommand()
+        {
+            commands.CreateCommand("katakana").Do(async (e) =>
+            {
+                await e.Channel.SendMessage("http://prntscr.com/ep0etn");
+            });
+        }
+
         // Update database (text files) functions
-       
+
         private void UpdateMemesList()
         {
             if (initFlag)
@@ -446,9 +483,36 @@ namespace LingoBot
             filewrite.Close();
         }
 
-        // Functions for the commands that read from text
+        private void UpdateSuggestions()
+        {
+            if (initFlag)
+            {
+                string line;
+                string[] appString = new string[suggestions.Count + 1];
+                string dirpath = Directory.GetCurrentDirectory();
+                dirpath = RemoveFromEnd(dirpath, "\\bin\\Debug");
+                dirpath = Path.Combine(dirpath, "Entities\\suggestionBox.txt");
 
-        private async Task AddLang(CommandEventArgs e, string line)
+                int i = 0;
+                for (i = 0; i < suggestions.Count; i++)
+                {
+                    line = suggestions.ElementAt(i);
+                    appString[i] = line + '\n';
+                }
+                appString[suggestions.Count] = "@";
+
+                System.IO.StreamWriter filewrite = new StreamWriter(dirpath);
+                for (i = 0; i < appString.Length; i++)
+                {
+                    filewrite.Write(appString[i]);
+                }
+                filewrite.Close();
+            }
+        }
+    
+    // Functions for the commands that read from text
+
+    private async Task AddLang(CommandEventArgs e, string line)
         {
             if (initFlag)
             {
@@ -475,7 +539,7 @@ namespace LingoBot
                 langArr[1] = con;
                 langArr[2] = lrn;
                 languageRoles.Add(ID, langArr);
-                await e.Channel.SendMessage("Successfully added languages for: " + ID);
+                Console.WriteLine("Successfully added languages for: " + ID);
             }
             else
                 await e.Channel.SendMessage("Please ask a mod to use the `~init` function!");
@@ -495,8 +559,8 @@ namespace LingoBot
                 }
                 if (flag)
                 {
-                    memes.AddLast(link);
-                    await e.Channel.SendMessage("Meme added to the meme list.");
+                    memes.Add(link);
+                    Console.WriteLine("Meme added to the meme list.");
                 }
                 else
                     PrintPremissionError(e);
@@ -517,6 +581,20 @@ namespace LingoBot
             Console.WriteLine(e.Message);
         }
 
+        private void MakeCaps(string line)
+        {
+            int c;
+            string newString = "";
+            for (int i = 0; i < line.Length; i++)
+            {
+                c = line[i];
+                if ('a' <= line[i] && line[i] <= 'z')
+                    c += 'A' - 'a';   
+
+                newString.Insert(i, "" + c);
+            }
+        }
+        
         private string RemoveFromEnd(string dirpath, string toRemove)
         {
             int i = 0;
@@ -528,6 +606,5 @@ namespace LingoBot
             }
             return dirpath.Substring(0, i);
         }
-
     }
 }
